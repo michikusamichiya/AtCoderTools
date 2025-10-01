@@ -1,0 +1,15 @@
+{
+  "name": "atcodertools",
+  "version": "1.0.0",
+  "description": "You can build it just by changing the source code.",
+  "main": "main.js",
+  "type": "module",
+  "scripts": {
+    "test": "node main.js"
+  },
+  "author": "michikusamichiya",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^5.6.2"
+  }
+}
