@@ -313,8 +313,6 @@ async function Launch() {
   async function Test(mode) {
     try {
       if (mode === "default") {
-        contest = "abc425";
-        problem = "D";
         const dir = `${contest}/${problem}`;
         if (!(problem && fs.existsSync(dir) && fs.statSync(dir).isDirectory())) {
           console.error(chalk.red(`${chalk.bold(`${contest}: ${problem}`)} not found`));
