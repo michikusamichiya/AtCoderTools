@@ -454,6 +454,7 @@ async function Launch() {
     console.log(hr);
     const choices = [
       { name: chalk.red("Start auto building and test"), value: "a" },
+      { name: chalk.yellow("All setup"), value: "cdde" },
       { name: chalk.yellow("Set contest"), value: "c" },
       { name: chalk.yellow("Download Testcases"), value: "d" },
       { name: chalk.yellow("Delete Testcases"), value: "de" },
@@ -481,6 +482,11 @@ async function Launch() {
       switch (command) {
         case "a":
           await AutoContest();
+          break;
+        case "cdde":
+          await SetContest();
+          await DownloadCases();
+          await SelectProblem();
           break;
         case "c":
           contest = await SetContest();
