@@ -82,6 +82,7 @@ async function Launch() {
     console.log(chalk.bold("Single key mode activated"));
     console.log(`${chalk.bold("B")}: Build`);
     console.log(`${chalk.bold("T")}: Test`);
+    console.log(`${chalk.bold("R")}: Build & Test`);
     console.log(`${chalk.bold("Q")}: Quit to menu`);
     // console.log(`${chalk.bold("Ctrl+C")}: Force quit`);
     
@@ -143,10 +144,14 @@ async function Launch() {
         switch (key.name) {
           case "b":
             console.log("Started to build");
-            await Build();
-            break;
-            case "t":
+              await Build();
+              break;
+          case "t":
             console.log("Started to test");
+            await Test("default");
+            break;
+          case "r":
+            await Build();
             await Test("default");
             break;
           default:
