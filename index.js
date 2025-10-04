@@ -1,4 +1,4 @@
-import fs from "fs";
+import fs, { exists, existsSync } from "fs";
 import chalk from "chalk";
 import inquirer from "inquirer";
 import { JSDOM } from "jsdom";
@@ -8,6 +8,8 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { resourceLimits } from "worker_threads";
 import readline from "readline";
+import clipboard from "clipboardy";
+import open from "open";
 
 const execAsync = promisify(exec);
 
@@ -239,6 +241,7 @@ async function Launch() {
       fs.mkdirSync(path.join(__dirname, contest, problem.label));
       fs.writeFileSync(`${path.join(__dirname, contest, problem.label, "label")}`, `${problem.label}`, "utf-8");
       fs.writeFileSync(`${path.join(__dirname, contest, problem.label, "name")}`, `${problem.name}`, "utf-8");
+      fs.writeFileSync(`${path.join(__dirname, contest, problem.label, "url")}`, `${problem.url}`, "utf-8");
       for (const [i, cas] of problem.cases.entries()) {
         if (!cas.input || !cas.output) continue;
         fs.writeFileSync(`${path.join(__dirname, contest, problem.label, `input${i}.txt`)}`, cas.input, "utf-8");
@@ -266,8 +269,9 @@ async function Launch() {
       const fullpath = `${contest}/${file}`;
       if (fs.statSync(fullpath).isDirectory()) {
         let a = {};
-        a.name = `${chalk.bold(fs.readFileSync(fullpath + "/label"))}: ${fs.readFileSync(fullpath + "/name")}`;
-        a.value = fs.readFileSync(fullpath + "/name");
+        // utf-8エンコーディングを指定
+        a.name = `${chalk.bold(fs.readFileSync(fullpath + "/label", "utf-8"))}: ${fs.readFileSync(fullpath + "/name", "utf-8")}`;
+        a.value = fs.readFileSync(fullpath + "/label", "utf-8");
         choices.push(a);
       }
     });
@@ -280,8 +284,8 @@ async function Launch() {
       }
     ]);
     problem = _problem;
-    console.log(chalk.green("Problem set to: "), problem);
-  }
+    console.log(chalk.green("Problem set to: "), _problem);
+}
   async function Build() {
     try {
       const { stdout, stderr } = await execAsync(config.build, {
@@ -430,6 +434,20 @@ async function Launch() {
     }
   }
 
+  async function CopyCode() {
+    await clipboard.write(fs.readFileSync(config.main, "utf-8"));
+    console.log(chalk.green("Successfully to copy!"));
+  }
+  async function OpenProblemPage(contest, problem) {
+    if (!existsSync(`${contest}/${problem}/url`)) {
+      console.error(chalk.red(`Problem ${contest}/${problem} not found`));
+      return;
+    }
+    const url = fs.readFileSync(`${contest}/${problem}/url`, "utf-8");
+    console.log(`Opening https://atcoder.jp${url}`);
+    await open(`https://atcoder.jp${url}`);
+  }
+
   console.log(chalk.red.bold("AtCoderTools Launched"));
 
   while (true) {
@@ -444,6 +462,9 @@ async function Launch() {
       { name: chalk.green("Build"), value: "b" },
       { name: chalk.green("Test"), value: "t" },
       { name: chalk.green("Test in any cases"), value: "ta" },
+      { name: chalk.blue("Copy your code & Go to problem"), value: "cogo" },
+      { name: chalk.blue("Copy your code"), value: "co" },
+      { name: chalk.blue("Go to problem's page"), value: "go" },
       { name: "Exit", value: "exit" }
     ];
 
@@ -485,6 +506,16 @@ async function Launch() {
           break;
         case "ta":
           await Test("any");
+          break;
+        case "cogo":
+          await CopyCode();
+          await OpenProblemPage(contest, problem);
+          break;
+        case "co":
+          await CopyCode();
+          break;
+        case "go":
+          await OpenProblemPage(contest, problem);
           break;
         case "exit":
           process.exit(0);
