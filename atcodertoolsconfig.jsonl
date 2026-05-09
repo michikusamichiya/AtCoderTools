@@ -1,0 +1,2 @@
+{"lang": "C++", "main":"main.cpp","build":"g++ -o out {MAIN_FILE}","run":"./a.out < {INPUT_FILE}"}
+{"lang": "Python", "main":"main.py", "build": "echo Building", "run": "python3 {MAIN_FILE} < {INPUT_FILE}"}

@@ -20,19 +20,42 @@ const hr = "─".repeat(50);
 
 async function Launch() {
   console.log("Launching...");
-  const config = await LoadConfig();
+  let allConfigs = []; // 複数の言語設定を保存
+  let currentLanguage = ""; // 現在の言語を保存
+  let config = await LoadConfig();
   const session = await LoadSession();
   let contest = "";
   let problem = "";
+  currentLanguage = config.lang; // LoadConfig実行後に設定
 
   async function LoadConfig() {
-    if (fs.existsSync("atcodertoolsconfig.json")) {
+    if (fs.existsSync("atcodertoolsconfig.jsonl")) {
+      try {
+        const content = fs.readFileSync("atcodertoolsconfig.jsonl", "utf-8");
+        const lines = content.trim().split('\n');
+        allConfigs = lines.map(line => JSON.parse(line));
+        
+        // デフォルトはC++、またはファイルの最初の言語を選択
+        const defaultConfig = allConfigs.find(c => c.lang === "C++") || allConfigs[0];
+        if (defaultConfig) {
+          currentLanguage = defaultConfig.lang;
+          const processedConfig = { ...defaultConfig };
+          processedConfig.build = processedConfig.build.replace("{MAIN_FILE}", processedConfig.main);
+          console.log("Loaded config:", processedConfig);
+          return processedConfig;
+        }
+      } catch(err) {
+        console.error(chalk.red("Something went wrong", err));
+      }
+    } else if (fs.existsSync("atcodertoolsconfig.json")) {
       try {
         const config = JSON.parse(fs.readFileSync("atcodertoolsconfig.json", "utf-8"));
+        allConfigs = [config];
+        currentLanguage = config.lang || "Default";
         // ビルドコマンドの中のプレースホルダーを置換
         config.build = config.build.replace("{MAIN_FILE}", config.main);
         console.log("Loaded config:", config);
-        return config;  // 修正: mainではなくconfigを返す
+        return config;
       } catch(err) {
         console.error(chalk.red("Something went wrong", err));
       }
@@ -49,6 +72,8 @@ async function Launch() {
       }
   
       fs.writeFileSync("atcodertoolsconfig.json", JSON.stringify(answers), "utf-8");
+      allConfigs = [answers];
+      currentLanguage = answers.lang || "Default";
       LoadConfig();
       console.log(chalk.green("Successfully initialized!"));
       return answers;
@@ -66,6 +91,36 @@ async function Launch() {
       fs.writeFileSync("session", session, "utf-8");
       console.log(chalk.green("Successfully registered the session ID!"));
       return session;
+    }
+  }
+  
+  async function SwitchLanguage() {
+    if (allConfigs.length < 2) {
+      console.warn(chalk.yellow("Only one language available"));
+      return;
+    }
+    
+    const choices = allConfigs.map(c => ({
+      name: `${c.lang} (${c.main})`,
+      value: c.lang
+    }));
+    
+    const { selectedLang } = await inquirer.prompt([
+      {
+        type: "list",
+        name: "selectedLang",
+        message: "Select a language",
+        choices: choices,
+        default: currentLanguage
+      }
+    ]);
+    
+    const newConfig = allConfigs.find(c => c.lang === selectedLang);
+    if (newConfig) {
+      config = { ...newConfig };
+      config.build = config.build.replace("{MAIN_FILE}", config.main);
+      currentLanguage = selectedLang;
+      console.log(chalk.green(`Successfully switched to ${chalk.bold(selectedLang)}`));
     }
   }
   
@@ -471,6 +526,7 @@ async function Launch() {
       { name: chalk.blue("Copy your code & Go to problem"), value: "cogo" },
       { name: chalk.blue("Copy your code"), value: "co" },
       { name: chalk.blue("Go to problem's page"), value: "go" },
+      { name: chalk.cyan(`Switch language (current: ${currentLanguage})`), value: "lang" },
       { name: "Exit", value: "exit" }
     ];
 
@@ -504,6 +560,9 @@ async function Launch() {
           break;
         case "s":
           await SelectProblem();
+          break;
+        case "lang":
+          await SwitchLanguage();
           break;
         case "b":
           await Build();
